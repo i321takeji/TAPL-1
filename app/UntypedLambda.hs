@@ -101,7 +101,7 @@ evalCmd input = do
           _ <- lift $ lift $ trace strategy term
           return ()
       else
-        outputStrLn $ render $ eval strategy term
+        outputStrLn $ render $ runEval strategy term
 
 getEnv :: InputT (StateT a IO) a
 getEnv = lift get
