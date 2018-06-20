@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 module Language.UntypedLambda
   ( module Language.UntypedLambda.Types
   , module Language.UntypedLambda.Parser
@@ -11,6 +12,8 @@ module Language.UntypedLambda
   , trace
   , traceN
   , steps
+  , bindVars
+  , alphaConv
   ) where
 
 import           Language.UntypedLambda.Parser
@@ -64,7 +67,7 @@ evalOneStep CallByValue       t = reduceCallByValue t
 
 -- | 正規順序戦略
 reduceNormalOrder :: Term -> Term
-reduceNormalOrder (TmApp (TmLam x old) new)             = subst x new old
+reduceNormalOrder (TmApp (TmLam x old) new)             = varCheck x new old
 reduceNormalOrder (TmApp t1@(TmApp _ _) t2@(TmApp _ _)) = TmApp (reduceNormalOrder t1) (reduceNormalOrder t2)
 reduceNormalOrder (TmApp t1@(TmApp _ _) t2)             = TmApp (reduceNormalOrder t1) t2
 reduceNormalOrder (TmApp t1 t2@(TmApp _ _))             = TmApp t1 (reduceNormalOrder t2)
@@ -88,6 +91,27 @@ reduceCallByValue (TmApp t1@(TmApp _ _) t2@(TmApp _ _)) = TmApp (reduceCallByVal
 reduceCallByValue (TmApp t1@(TmApp _ _) t2) = TmApp (reduceCallByValue t1) t2
 reduceCallByValue (TmApp t1 t2@(TmApp _ _)) = TmApp t1 (reduceCallByValue t2)
 reduceCallByValue t = t
+
+-- | 束縛変数の重複チェック
+varCheck :: Text -> Term -> Term -> Term
+varCheck v new old
+  | Set.null dup = subst v new old
+  | otherwise = subst v new' old
+  where
+    dup = vs1 `Set.intersection` vs2
+    vs1 = bindVars Set.empty new
+    vs2 = bindVars Set.empty old
+    new' = foldr alphaConv new $ Set.toList dup
+
+-- | α-conv
+alphaConv :: Text -> Term -> Term
+alphaConv v t@(TmVar v')
+  | v == v' = TmVar (v' <> "'")
+  | otherwise = t
+alphaConv v (TmLam v' t')
+  | v == v' = TmLam (v' <> "'") (alphaConv v t')
+  | otherwise = TmLam v' (alphaConv v t')
+alphaConv v (TmApp t1 t2) = TmApp (alphaConv v t1) (alphaConv v t2)
 
 -- | β-reduction
 subst :: Text -> Term -> Term -> Term
@@ -118,6 +142,15 @@ freeVars fv (TmApp t1 t2) = fv1 `Set.union` fv2
   where
     fv1 = freeVars fv t1
     fv2 = freeVars fv t2
+
+-- | 項に含まれる束縛変数を返す
+bindVars :: Set Text -> Term -> Set Text
+bindVars vs (TmVar _) = vs
+bindVars vs (TmLam v t) = bindVars (Set.insert v vs) t
+bindVars vs (TmApp t1 t2) = vs1 `Set.union` vs2
+  where
+    vs1 = bindVars vs t1
+    vs2 = bindVars vs t2
 
 -- | 与えられた項が値かどうか判定する述語
 isValue :: Term -> Bool

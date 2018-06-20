@@ -13,6 +13,7 @@ import           Language.UntypedLambda.Prelude
 import           Language.Utils.Pretty
 
 import           Data.Either
+import qualified Data.Set                        as Set
 
 test_ul :: TestTree
 test_ul = testGroup "UntypedLambda"
@@ -140,24 +141,26 @@ test_ul = testGroup "UntypedLambda"
       eval NormalOrder (TmApp scc (c 2)) @?= eval NormalOrder (TmApp scc2 (c 2))
 
       -- plus
-      eval NormalOrder (TmApp (TmApp plus (c 5)) (c 10))    @?= c 15
-      eval NormalOrder (TmApp (TmApp plus (c 100)) (c 200)) @?= c 300
+      eval NormalOrder (TmApp (TmApp plus (c 5)) (c 10))  @?= c 15
+      eval NormalOrder (TmApp (TmApp plus (c 10)) (c 20)) @?= c 30
 
       -- times
-      eval NormalOrder (TmApp (TmApp times (c 5)) (c 10))    @?= c 50
-      eval NormalOrder (TmApp (TmApp times (c 100)) (c 200)) @?= c 20000
-      eval NormalOrder (TmApp (TmApp times (c 5)) (c 10))    @?= eval NormalOrder (TmApp (TmApp times2 (c 5)) (c 10))
-      eval NormalOrder (TmApp (TmApp times (c 100)) (c 200)) @?= eval NormalOrder (TmApp (TmApp times2 (c 100)) (c 200))
-      eval NormalOrder (TmApp (TmApp times (c 5)) (c 10))    @?= eval NormalOrder (TmApp (TmApp times3 (c 5)) (c 10))
-      eval NormalOrder (TmApp (TmApp times (c 100)) (c 200)) @?= eval NormalOrder (TmApp (TmApp times3 (c 100)) (c 200))
+      eval NormalOrder (TmApp (TmApp times (c 5)) (c 10))  @?= c 50
+      eval NormalOrder (TmApp (TmApp times (c 10)) (c 20)) @?= c 200
+      eval NormalOrder (TmApp (TmApp times (c 5)) (c 10))  @?= eval NormalOrder (TmApp (TmApp times2 (c 5)) (c 10))
+      eval NormalOrder (TmApp (TmApp times (c 10)) (c 20)) @?= eval NormalOrder (TmApp (TmApp times2 (c 10)) (c 20))
+      eval NormalOrder (TmApp (TmApp times (c 5)) (c 10))  @?= eval NormalOrder (TmApp (TmApp times3 (c 5)) (c 10))
+      eval NormalOrder (TmApp (TmApp times (c 10)) (c 20)) @?= eval NormalOrder (TmApp (TmApp times3 (c 10)) (c 20))
 
       -- power
-      eval NormalOrder (TmApp (TmApp power1 (c 2)) (c 10)) @?= c 1024
-      eval NormalOrder (TmApp (TmApp power1 (c 2)) (c 0))  @?= c 1
+      eval NormalOrder (TmApp (TmApp power1 (c 2)) (c 3)) @?= c 8
+      eval NormalOrder (TmApp (TmApp power1 (c 2)) (c 0)) @?= c 1
 
       -- TODO https://github.com/waddlaw/TAPL/issues/13
-      -- eval NormalOrder (TmApp (TmApp power2 (c 2)) (c 3))  @?= c 9
-      -- eval NormalOrder (TmApp (TmApp power2 (c 0)) (c 2))  @?= c 1
+      eval NormalOrder (TmApp (TmApp power2 (c 2)) (c 1))  @?= c 2
+      -- eval NormalOrder (TmApp (TmApp power2 (c 2)) (c 2))  @?= c 4
+      eval NormalOrder (TmApp (TmApp power2 (c 0)) (c 2))  @?= c 0
+      -- eval NormalOrder (TmApp (TmApp power2 (c 2)) (c 0))  @?= c 1
 
       -- iszro
       eval NormalOrder (TmApp iszro (c 1)) @?= fls
@@ -176,7 +179,7 @@ test_ul = testGroup "UntypedLambda"
       -- equal
       eval NormalOrder (TmApp (TmApp equal (c 10)) (c 2)) @?= fls
       eval NormalOrder (TmApp (TmApp equal (c 2))  (c 2)) @?= tru
-
+  , testCase "List" $ do
       -- cons
       eval NormalOrder (TmApp (TmApp cons "x") nil) @?= TmLam "c" (TmLam "n" (TmApp (TmApp "c" "x") "n"))
 
@@ -193,4 +196,20 @@ test_ul = testGroup "UntypedLambda"
       eval NormalOrder (TmApp tail nil) @?= nil
       eval NormalOrder (TmApp tail (TmLam "c" (TmLam "n" (TmApp (TmApp "c" "x") "n")))) @?= nil
       eval NormalOrder (TmApp tail (TmLam "c" (TmLam "n" (TmApp (TmApp "c" "x") (TmApp (TmApp "c" "y") "n"))))) @?= TmLam "c" (TmLam "n" (TmApp (TmApp "c" "y") "n"))
+  , testCase "bindVars" $ do
+      bindVars Set.empty UL.example1 @?= Set.empty
+      bindVars Set.empty UL.example2 @?= Set.fromList ["x", "y"]
+      bindVars Set.empty UL.example3 @?= Set.fromList ["x", "z"]
+      bindVars Set.empty UL.example4 @?= Set.fromList ["x"]
+      bindVars Set.empty UL.example5 @?= Set.fromList ["z", "x", "y"]
+      bindVars Set.empty UL.example6 @?= Set.fromList ["x"]
+      bindVars Set.empty UL.example7 @?= Set.fromList ["f", "l", "m", "n", "t"]
+      bindVars Set.empty UL.example8 @?= Set.fromList ["b", "c", "f", "t"]
+      bindVars Set.empty UL.example9 @?= Set.fromList ["b", "c", "f", "t"]
+      bindVars Set.empty UL.example10 @?= Set.fromList ["b", "f", "p", "s", "t"]
+      bindVars Set.empty UL.example11 @?= Set.fromList ["c", "n"]
+  , testCase "alphaConv" $ do
+      alphaConv "x" (TmLam "x" "x") @?= TmLam "x'" "x'"
+      alphaConv "x" (TmLam "x" (TmLam "y" "x")) @?= TmLam "x'" (TmLam "y" "x'")
+      alphaConv "y" (TmLam "x" (TmLam "y" "x")) @?= TmLam "x" (TmLam "y'" "x")
   ]
