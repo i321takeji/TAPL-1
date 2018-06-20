@@ -13,29 +13,29 @@ import qualified Data.Text                      as T
 import           Text.Parser.Token.Highlight
 import           Text.Trifecta
 
-runUlParser :: String -> Either String Term
+runUlParser :: String -> Either String UntypedLambdaTerm
 runUlParser = runParserString exprP
 
-exprP :: Parser Term
+exprP :: Parser UntypedLambdaTerm
 exprP = lefty <$> factorP <*> termsP
   where
     lefty x xs = foldl1 TmApp (x:xs)
     termsP = many (space *> factorP)
 
-factorP :: Parser Term
+factorP :: Parser UntypedLambdaTerm
 factorP = (char '(' *> (exprP <* char ')')) <|> try numP <|> varP <|> lambdaP
 
-lambdaP :: Parser Term
+lambdaP :: Parser UntypedLambdaTerm
 lambdaP = TmLam <$  symbol "λ"
                 <*> identP
                 <*  dot
                 <*> token exprP
 
-numP :: Parser Term
+numP :: Parser UntypedLambdaTerm
 numP = c . read <$  char 'c'
                 <*> some digit
 
-varP :: Parser Term
+varP :: Parser UntypedLambdaTerm
 varP = toTerm <$> oneOf ['a'..'z'] <*> many alphaNum
   where
     toTerm x xs = lifty $ T.pack (x:xs)

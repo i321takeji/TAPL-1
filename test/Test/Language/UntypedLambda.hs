@@ -18,9 +18,9 @@ import qualified Data.Set                        as Set
 test_ul :: TestTree
 test_ul = testGroup "UntypedLambda"
   [ testCase "pretty" $ do
-      prettyText (TmVar "x") @?= "x"
-      prettyText (TmLam "x" "x") @?= "λx. x"
-      prettyText (TmApp "x" "y") @?= "x y"
+      prettyText (mkVar "x") @?= "x"
+      prettyText (mkLam "x" "x") @?= "λx. x"
+      prettyText (mkApp "x" "y") @?= "x y"
   , testCase "parser" $ do
       runUlParser "x" @?= Right "x"
       runUlParser "x1y" @?= Right "x1y"

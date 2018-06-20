@@ -50,7 +50,7 @@ import           Data.Map                     (Map)
 import qualified Data.Map                     as Map (fromList)
 import           Data.Text                    (Text)
 
-prelude :: Map Text Term
+prelude :: Map Text UntypedLambdaTerm
 prelude = Map.fromList
   [ ("id", id), ("tru", tru), ("fls", fls), ("test", test), ("and", and), ("or", or), ("not", not)
   , ("pair", pair), ("fst", fst), ("snd", snd)
@@ -59,43 +59,43 @@ prelude = Map.fromList
   ]
 
 -- | λx. x
-id :: Term
+id :: UntypedLambdaTerm
 id = TmLam "x" "x"
 
 -- | λt. λf. t
-tru :: Term
+tru :: UntypedLambdaTerm
 tru = TmLam "t" (TmLam "f" "t")
 
 -- | λt. λf. f
-fls :: Term
+fls :: UntypedLambdaTerm
 fls = TmLam "t" (TmLam "f" "f")
 
 -- | λl. λm. λn. l m n
-test :: Term
+test :: UntypedLambdaTerm
 test = TmLam "l" (TmLam "m" (TmLam "n" (TmApp (TmApp "l" "m") "n")))
 
 -- | λb. λc. b c fls
-and :: Term
+and :: UntypedLambdaTerm
 and = TmLam "b" (TmLam "c" (TmApp (TmApp "b" "c") fls))
 
 -- | λb. λc. b tru c
-or :: Term
+or :: UntypedLambdaTerm
 or = TmLam "b" (TmLam "c" (TmApp (TmApp "b" tru) "c"))
 
 -- | λb. b fls tru
-not :: Term
+not :: UntypedLambdaTerm
 not = TmLam "b" (TmApp (TmApp "b" fls) tru)
 
 -- | λf. λs. λb. b f s
-pair :: Term
+pair :: UntypedLambdaTerm
 pair = TmLam "f" (TmLam "s" (TmLam "b" (TmApp (TmApp "b" "f") "s")))
 
 -- | λp. p tru
-fst :: Term
+fst :: UntypedLambdaTerm
 fst = TmLam "p" (TmApp "p" tru)
 
 -- | λp. p fls
-snd :: Term
+snd :: UntypedLambdaTerm
 snd = TmLam "p" (TmApp "p" fls)
 
 -- |
@@ -106,98 +106,98 @@ snd = TmLam "p" (TmApp "p" fls)
 -- c2 = λs. λz. s (s z)
 --
 -- c3 = λs. λz. s (s (s z))
-c :: Int -> Term
+c :: Int -> UntypedLambdaTerm
 c n = TmLam "s" (TmLam "z" body)
   where
     body = foldr TmApp "z" $ replicate n "s"
 
 -- | λn. λs. λz. s (n s z)
-scc :: Term
+scc :: UntypedLambdaTerm
 scc = TmLam "n" (TmLam "s" (TmLam "z" (TmApp "s" (TmApp (TmApp "n" "s") "z"))))
 
 -- | λn. λs. λz. n s (s z)
-scc2 :: Term
+scc2 :: UntypedLambdaTerm
 scc2 = TmLam "n" (TmLam "s" (TmLam "z" (TmApp (TmApp "n" "s") (TmApp "s" "z"))))
 
 -- | λm. λn. λs. λz. m s (n s z)
-plus :: Term
+plus :: UntypedLambdaTerm
 plus = TmLam "m" (TmLam "n" (TmLam "s" (TmLam "z" (TmApp (TmApp "m" "s") (TmApp (TmApp "n" "s") "z")))))
 
 -- | λm. λn. m (plus n) c0
-times :: Term
+times :: UntypedLambdaTerm
 times = TmLam "m" (TmLam "n" (TmApp (TmApp "m" (TmApp plus "n")) (c 0)))
 
 -- | λm. λn. λs. λz. m (n s) z
-times2 :: Term
+times2 :: UntypedLambdaTerm
 times2 = TmLam "m" (TmLam "n" (TmLam "s" (TmLam "z" (TmApp (TmApp "m" (TmApp "n" "s")) "z"))))
 
 -- | λm. λn. λs. m (n s)
-times3 :: Term
+times3 :: UntypedLambdaTerm
 times3 = TmLam "m" (TmLam "n" (TmLam "s" (TmApp "m" (TmApp "n" "s"))))
 
 -- | λn. λm. m (times n) c1
 --
 -- n^m
-power1 :: Term
+power1 :: UntypedLambdaTerm
 power1 = TmLam "n" (TmLam "m" (TmApp (TmApp "m" (TmApp times "n")) (c 1)))
 
 -- | λn. λm. m n
 --
 -- n^m
-power2 :: Term
+power2 :: UntypedLambdaTerm
 power2 = TmLam "n" (TmLam "m" (TmApp "m" "n"))
 
 -- | λm. m (λx. fls) tru
-iszro :: Term
+iszro :: UntypedLambdaTerm
 iszro = TmLam "m" (TmApp (TmApp "m" (TmLam "x" fls)) tru)
 
 -- | pair c0 c0
-zz :: Term
+zz :: UntypedLambdaTerm
 zz = TmApp (TmApp pair (c 0)) (c 0)
 
 -- | λp. pair (snd p) (plus c1 (snd p))
-ss :: Term
+ss :: UntypedLambdaTerm
 ss = TmLam "p" (TmApp (TmApp pair (TmApp snd "p")) (TmApp (TmApp plus (c 1)) (TmApp snd "p")))
 
 -- | λm. fst (m ss zz)
-prd :: Term
+prd :: UntypedLambdaTerm
 prd = TmLam "m" (TmApp fst (TmApp (TmApp "m" ss) zz))
 
 -- | λm. λn. n prd m
-subtract1 :: Term
+subtract1 :: UntypedLambdaTerm
 subtract1 = TmLam "m" (TmLam "n" (TmApp (TmApp "n" prd) "m"))
 
 -- | λm. λn. and (iszro (m prd n)) (iszro (n prd m))
-equal :: Term
+equal :: UntypedLambdaTerm
 equal = TmLam "m" (TmLam "n" (TmApp (TmApp and (TmApp iszro l)) (TmApp iszro r)))
   where
     l = TmApp (TmApp "m" prd) "n"
     r = TmApp (TmApp "n" prd) "m"
 
 -- | λc. λn. n
-nil :: Term
+nil :: UntypedLambdaTerm
 nil = TmLam "c" (TmLam "n" "n")
 
 -- | λh. λt. λc. λn. c h (t c n)
-cons :: Term
+cons :: UntypedLambdaTerm
 cons = TmLam "h" (TmLam "t" (TmLam "c" (TmLam "n" (TmApp (TmApp "c" "h") (TmApp (TmApp "t" "c") "n")))))
 
 -- | λl. l (λh. λt. fls) tru
-isnil :: Term
+isnil :: UntypedLambdaTerm
 isnil = TmLam "l" (TmApp (TmApp "l" (TmLam "h" (TmLam "t" fls))) tru)
 
 -- | λl. l (λh. λt. h) l
-head :: Term
+head :: UntypedLambdaTerm
 head = TmLam "l" (TmApp (TmApp "l" (TmLam "h" (TmLam "t" "h"))) "l")
 
 -- | pair nil nil
-nn :: Term
+nn :: UntypedLambdaTerm
 nn = TmApp (TmApp pair nil) nil
 
 -- | λh. λp. pair (snd p) (cons h (snd p))
-cc :: Term
+cc :: UntypedLambdaTerm
 cc = TmLam "h" (TmLam "p" (TmApp (TmApp pair (TmApp snd "p")) (TmApp (TmApp cons "h") (TmApp snd "p"))))
 
 -- | λl. fst (l cc nn)
-tail :: Term
+tail :: UntypedLambdaTerm
 tail = TmLam "l" (TmApp fst (TmApp (TmApp "l" cc) nn))
