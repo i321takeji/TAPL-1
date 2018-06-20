@@ -143,7 +143,7 @@ power1 = TmLam "n" (TmLam "m" (TmApp (TmApp "m" (TmApp times "n")) (c 1)))
 
 -- | λn. λm. m n
 --
--- m^n
+-- n^m
 power2 :: Term
 power2 = TmLam "n" (TmLam "m" (TmApp "m" "n"))
 
