@@ -15,6 +15,7 @@ module Language.UntypedLambda
   , steps
   , bindVars
   , alphaConv
+  , runEvalN
   ) where
 
 import           Language.UntypedLambda.Parser
@@ -31,6 +32,9 @@ import qualified Data.Text                      as T
 
 runEval :: Strategy -> UntypedLambdaTerm -> UntypedLambdaTerm
 runEval s t = evalState (eval s t) 0
+
+runEvalN :: Strategy -> UntypedLambdaTerm -> Int ->IO ()
+runEvalN s t n = evalStateT (traceN s t n) 0
 
 -- | 指定された評価戦略で項を正規系に評価する
 eval :: Strategy -> UntypedLambdaTerm -> State Int UntypedLambdaTerm
@@ -51,7 +55,6 @@ traceN s t n = do
   cnt <- get
   result <- return $ evalState (evalOneStep s t) cnt
   liftIO $ putStrLn $ render result
-  modify (+1)
   traceN s result (n-1)
 
 -- | 簡約ステップ列を返す
@@ -114,19 +117,23 @@ varCheck v new old
 
 -- | α-conv
 alphaConv :: Text -> UntypedLambdaTerm -> State Int UntypedLambdaTerm
-alphaConv v1 term@(TmVar v2) = do
-  cnt <- get
-  let term' = if v1 == v2 then mkVar $ mkFreshVar v2 cnt else term
-  modify (+1)
-  return term'
+alphaConv v1 term@(TmVar v2) =
+  if v1 == v2
+  then do
+    cnt <- get
+    let term' = mkVar $ mkFreshVar v2 cnt
+    modify (+1)
+    return term'
+  else return term
 alphaConv v1 (TmLam v2 subTerm) = do
-  cnt <- get
   r <- alphaConv v1 subTerm
-  let term' = if v1 == v2
-              then mkLam (mkFreshVar v2 cnt) r
-              else mkLam v2 r
-  modify (+1)
-  return term'
+  if v1 == v2
+  then do
+    cnt <- get
+    let term = mkLam (mkFreshVar v2 cnt) r
+    modify (+1)
+    return term
+  else return $ mkLam v2 r
 alphaConv v (TmApp t1 t2) = mkApp <$> alphaConv v t1 <*> alphaConv v t2
 
 mkFreshVar :: Text -> Int -> Text
