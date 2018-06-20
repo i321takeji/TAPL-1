@@ -12,7 +12,13 @@ data Term
   = TmVar Text
   | TmLam Text Term
   | TmApp Term Term
-  deriving (Eq, Show)
+  deriving Show
+
+instance Eq Term where
+  (TmVar _) == (TmVar _) = True
+  (TmLam _ t1) == (TmLam _ t2) = t1 == t2
+  (TmApp t1 t2) == (TmApp t1' t2') = t1 == t1' && t2 == t2'
+  _ == _ = False
 
 instance Pretty Term where
   pretty (TmVar x)     = pretty x
