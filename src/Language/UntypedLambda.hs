@@ -9,6 +9,7 @@ module Language.UntypedLambda
   , evalWithTrace
   , evalOneStep
   , trace
+  , traceN
   , steps
   ) where
 
@@ -31,6 +32,10 @@ eval s t
 -- | デバッグ用
 trace :: Strategy -> Term -> IO ()
 trace s t = mapM_ (putStrLn . render) $ reverse $ evalWithTrace s [t] t
+
+-- | デバッグ用
+traceN :: Strategy -> Term -> Int -> IO ()
+traceN s t n = mapM_ (putStrLn . render) $ reverse $ take n $ evalWithTrace s [t] t
 
 -- | 簡約ステップ列を返す
 evalWithTrace :: Strategy -> [Term] -> Term -> [Term]
