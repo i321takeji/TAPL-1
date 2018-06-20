@@ -34,11 +34,11 @@ trace :: Strategy -> Term -> IO ()
 trace s t = mapM_ (putStrLn . render) $ reverse $ evalWithTrace s [t] t
 
 -- | デバッグ用
-traceN :: Strategy -> Int -> Term -> IO ()
-traceN _ 0 _ = return ()
-traceN s n t = do
+traceN :: Strategy -> Term -> Int -> IO ()
+traceN _ _ 0 = return ()
+traceN s t n = do
   putStrLn $ render t'
-  traceN s (n-1) t'
+  traceN s t' (n-1)
   where
     t' = evalOneStep s t
 
